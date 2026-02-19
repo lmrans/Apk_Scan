@@ -14,7 +14,7 @@ class FormPeminjamanPage extends StatefulWidget {
 class _FormPeminjamanPageState extends State<FormPeminjamanPage>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-
+  
   // Controller Input
   final namaController = TextEditingController();
   final jumlahController = TextEditingController();
@@ -58,10 +58,10 @@ class _FormPeminjamanPageState extends State<FormPeminjamanPage>
   Future<void> ambilBarang() async {
     try {
       final response = await http.get(
-        Uri.parse("http://127.0.0.1/atk_api/api/barang_user.php"),
+        Uri.parse("http://76.4.3.3/apkscan/api/barang_user.php"),
       );
 
-      print("STATUS: ${response.statusCode}");
+      print("STATUS: ${response.statusCode}"); 
       print("BODY: ${response.body}");
 
       if (response.statusCode == 200) {
@@ -98,7 +98,7 @@ class _FormPeminjamanPageState extends State<FormPeminjamanPage>
 
     try {
       final response = await http.post(
-        Uri.parse("http://127.0.0.1/atk_api/api/transaksi.php"),
+        Uri.parse("http://76.4.3.3/apkscan/api/transaksi.php"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "id_barang": selectedIdBarang,

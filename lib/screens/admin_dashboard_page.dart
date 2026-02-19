@@ -17,7 +17,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     with TickerProviderStateMixin {
   late AnimationController _rotationController;
 
-  final String baseUrl = "http://127.0.0.1/atk_api/api";
+  final String baseUrl = "http://76.4.3.3/apkscan/api";
   // jika pakai HP asli ganti dengan IP komputer kamu
   Map<String, String> get headers => {
     "Content-Type": "application/json",
@@ -317,7 +317,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                   ),
                 ),
               ),
-
               const SizedBox(height: 30),
             ],
           ),
@@ -329,7 +328,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
   @override
   Widget build(BuildContext context) {
     int jumlahStokMenipis = _allInventory
-        .where((item) => item['stok'] < 5)
+        .where((item) => item['stok'] < 10)
         .length;
 
     return Scaffold(
@@ -371,7 +370,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                   GestureDetector(
                     onTap: () async {
                       final url = Uri.parse(
-                        "http://127.0.0.1/atk_api/api/export_transaksi.php",
+                        "http://76.4.3.3/apkscan/api/export_transaksi.php",
                       );
                       await launchUrl(
                         url,
