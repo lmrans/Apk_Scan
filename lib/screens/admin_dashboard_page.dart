@@ -148,32 +148,26 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
       _showSnackBar("Terjadi kesalahan koneksi!");
     }
   }
-
+ 
   // UPDATE STOK DI DATABASE
-  Future<void> _updateExistingStok(String? kode) async {
-    // Gunakan String? (nullable)
-    // 1. Validasi awal: pastikan kode dan controller tidak kosong
-    if (kode == null || kode.isEmpty || _updateStokController.text.isEmpty) {
-      _showSnackBar("Data tidak valid atau stok belum diisi");
-      return;
-    }
-
+  Future<void> _updateExistingStok(String kodeBarang) async {
     try {
-      final response = await http.patch(
+      final response = await http.put(
         Uri.parse("$baseUrl/barang_admin.php"),
         headers: headers,
         body: jsonEncode({
-          "kode_barang": kode.trim().toUpperCase(),
-          "stok_tambah":
-              int.tryParse(_updateStokController.text) ??
-              0, // Aman jika bukan angka
+          "kode_barang": kodeBarang,
+          "stok": int.parse(_updateStokController.text),
         }),
       );
 
       final result = jsonDecode(response.body);
+
       if (result['status'] == true) {
         await fetchBarang();
-        if (mounted) Navigator.pop(context);
+
+        if (mounted) Navigator.pop(context); // TUTUP BOTTOMSHEET DI SINI SAJA
+
         _showSnackBar("Stok berhasil diperbarui!");
       } else {
         _showSnackBar(result['message']);
@@ -188,7 +182,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
       final response = await http.delete(
         Uri.parse("$baseUrl/barang_admin.php"),
         headers: {"Content-Type": "application/json", "Role": "admin"},
-        body: jsonEncode({"id": id}),
+        body: jsonEncode({"id_barang": id}),
       );
 
       if (response.statusCode == 200) {
@@ -323,6 +317,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                 ),
               ),
 
+              const SizedBox(height: 15),
               // ================= SATUAN =================
               Row(
                 children: [
@@ -1001,7 +996,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
 
                   showDialog(
                     context: context,
-                    builder: (context) => AlertDialog(
+                    builder: (dialogContext) => AlertDialog(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
@@ -1011,13 +1006,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                       ),
                       actions: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () => Navigator.pop(dialogContext),
                           child: const Text("Batal"),
                         ),
                         TextButton(
-                          onPressed: () {
-                            _deleteBarang(item['id_barang']);
-                            Navigator.pop(context);
+                          onPressed: () async {
+                            await _deleteBarang(item['id_barang']);
+
+                            Navigator.pop(dialogContext); // tutup dialog
+                            Navigator.pop(context); // tutup bottomsheet
                           },
                           child: const Text(
                             "Hapus",
