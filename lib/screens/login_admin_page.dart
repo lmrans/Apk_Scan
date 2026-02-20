@@ -110,7 +110,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Image.asset(
-                      'assets/logo bps.png',
+                      'assets/logo_bps.png',
                       width: 70,
                       errorBuilder: (context, e, s) => const Icon(
                         Icons.analytics,

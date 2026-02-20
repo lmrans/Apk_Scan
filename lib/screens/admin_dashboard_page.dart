@@ -16,6 +16,7 @@ class AdminDashboardPage extends StatefulWidget {
 class _AdminDashboardPageState extends State<AdminDashboardPage>
     with TickerProviderStateMixin {
   late AnimationController _rotationController;
+  String? _selectedSatuan;
 
   final String baseUrl = "http://76.4.3.3/apkscan/api";
   // jika pakai HP asli ganti dengan IP komputer kamu
@@ -46,7 +47,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final response = await http.get(
         Uri.parse("$baseUrl/barang_admin.php"),
-        // WAJIB tambah headers agar PHP memberikan data
         headers: {"Content-Type": "application/json", "Role": "admin"},
       );
 
@@ -56,17 +56,20 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         List<Map<String, dynamic>> barang = List<Map<String, dynamic>>.from(
           data['data'].map(
             (item) => {
+              "id_barang": item['id_barang'], // WAJIB untuk delete
               "kode_barang": item['kode_barang']?.toString() ?? "",
               "nama_barang": item['nama_barang']?.toString() ?? "",
               "stok": int.tryParse(item['stok'].toString()) ?? 0,
+              "satuan": item['satuan']?.toString() ?? "",
             },
           ),
         );
 
         setState(() {
           _allInventory = barang;
-          _foundInventory = barang; // Set data awal agar muncul di list
+          _foundInventory = barang;
         });
+
         print("Data berhasil dimuat: ${_allInventory.length} barang");
       } else {
         print("Gagal ambil data: ${data['message']}");
@@ -81,9 +84,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     String inputKode = _kodeController.text.trim().toUpperCase();
     String nama = _namaController.text.trim();
     String stok = _stokController.text.trim();
+    String? satuan = _selectedSatuan; // dari dropdown
 
     // ================= VALIDASI =================
-    if (inputKode.isEmpty || nama.isEmpty || stok.isEmpty) {
+    if (inputKode.isEmpty || nama.isEmpty || stok.isEmpty || satuan == null) {
       _showSnackBar("Semua field wajib diisi!");
       return;
     }
@@ -99,20 +103,23 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
       return;
     }
 
+    if (stokInt < 0) {
+      _showSnackBar("Stok tidak boleh negatif!");
+      return;
+    }
+
     try {
       final response = await http.post(
         Uri.parse("$baseUrl/barang_admin.php"),
-        // UBAH BAGIAN INI:
-        headers: headers, // Menggunakan getter headers yang berisi Role: admin
+        headers: headers, // pastikan ada Role: admin
         body: jsonEncode({
           "kode_barang": inputKode,
           "nama_barang": nama,
           "stok": stokInt,
-          "harga": 0,
+          "satuan": satuan, // ✅ sudah benar
         }),
       );
 
-      // Debugging: Lihat pesan dari server di console
       print("Status: ${response.statusCode}");
       print("Response: ${response.body}");
 
@@ -125,12 +132,12 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
           _namaController.clear();
           _kodeController.clear();
           _stokController.clear();
+          _selectedSatuan = null;
 
-          if (mounted)
-            Navigator.pop(context); // Gunakan mounted check untuk safety
+          if (mounted) Navigator.pop(context);
+
           _showSnackBar("Barang berhasil ditambahkan!");
         } else {
-          // Jika Role salah, pesan "Akses khusus admin" akan muncul di sini
           _showSnackBar(result['message'] ?? "Gagal menambahkan barang");
         }
       } else {
@@ -173,6 +180,32 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
       }
     } catch (e) {
       _showSnackBar("Gagal terhubung ke server");
+    }
+  }
+
+  Future<void> _deleteBarang(int id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse("$baseUrl/barang_admin.php"),
+        headers: {"Content-Type": "application/json", "Role": "admin"},
+        body: jsonEncode({"id": id}),
+      );
+
+      if (response.statusCode == 200) {
+        final result = jsonDecode(response.body);
+
+        if (result['status'] == true) {
+          await fetchBarang(); // refresh list
+          _showSnackBar("Barang berhasil dihapus");
+        } else {
+          _showSnackBar(result['message'] ?? "Gagal menghapus barang");
+        }
+      } else {
+        _showSnackBar("Server error: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error delete: $e");
+      _showSnackBar("Terjadi kesalahan koneksi!");
     }
   }
 
@@ -283,11 +316,71 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                 controller: _stokController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: "Stok Awal",
+                  labelText: "Stok",
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15),
                   ),
                 ),
+              ),
+
+              // ================= SATUAN =================
+              Row(
+                children: [
+                  // INPUT JUMLAH
+                  Expanded(
+                    flex: 2,
+                    child: TextField(
+                      controller: _stokController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: "Jumlah",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  // DROPDOWN SATUAN
+                  Expanded(
+                    flex: 3,
+                    child: DropdownButtonFormField<String>(
+                      value: _selectedSatuan,
+                      decoration: InputDecoration(
+                        labelText: "Satuan",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                      ),
+                      items:
+                          [
+                                "buah",
+                                "pcs",
+                                "pack",
+                                "lusin",
+                                "Rim",
+                                "Box",
+                                "Roll",
+                                "Botol",
+                                "kaleng",
+                              ]
+                              .map(
+                                (satuan) => DropdownMenuItem(
+                                  value: satuan,
+                                  child: Text(satuan),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        setModalState(() {
+                          _selectedSatuan = value;
+                        });
+                      },
+                    ),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 25),
@@ -342,7 +435,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
               child: Column(
                 children: [
                   _buildSummaryCard(
-                   "Total item",
+                    "Total item",
                     "${_allInventory.length} Barang",
                     Icons.inventory_2_outlined,
                     Colors.blue,
@@ -846,12 +939,17 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
+
             const SizedBox(height: 20),
+
             Text(
               "Update Stok: ${item['nama_barang']}",
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
+
             const SizedBox(height: 20),
+
+            // INPUT TAMBAH STOK
             TextField(
               controller: _updateStokController,
               keyboardType: TextInputType.number,
@@ -863,12 +961,18 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                 ),
               ),
             ),
+
             const SizedBox(height: 25),
+
+            // TOMBOL SIMPAN
             SizedBox(
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () => _updateExistingStok(item['kode_barang']),
+                onPressed: () {
+                  _updateExistingStok(item['kode_barang']);
+                  Navigator.pop(context);
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF001FBF),
                   shape: RoundedRectangleBorder(
@@ -884,6 +988,62 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                 ),
               ),
             ),
+
+            const SizedBox(height: 15),
+
+            // TOMBOL DELETE
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      title: const Text("Konfirmasi Hapus"),
+                      content: Text(
+                        "Yakin ingin menghapus ${item['nama_barang']}?",
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text("Batal"),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            _deleteBarang(item['id_barang']);
+                            Navigator.pop(context);
+                          },
+                          child: const Text(
+                            "Hapus",
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+                child: const Text(
+                  "HAPUS BARANG",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
             const SizedBox(height: 30),
           ],
         ),

@@ -76,7 +76,7 @@ class _TpscanState extends State<Tpscan> with TickerProviderStateMixin {
               Column(
                 children: [
                   Image.asset(
-                    'assets/logo bps.png',
+                    'assets/logo_bps.png',
                     width: 60,
                     errorBuilder: (context, error, stackTrace) => const Icon(
                       Icons.analytics,
