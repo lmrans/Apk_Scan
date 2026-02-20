@@ -24,12 +24,12 @@ dev_dependencies:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/logo bps.png"
+  image_path: "assets/logo_bps.png"
 
 flutter:
   uses-material-design: true
 
   assets:
-    - assets/logo bps.png
+    - assets/logo_bps.png
     - assets/backroung.png
     - assets/Subtract.png
