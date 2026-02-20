@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -47,8 +46,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final response = await http.get(
         Uri.parse("$baseUrl/barang_admin.php"),
-        headers: {"Content-Type": "application/json", "Role": "admin"},
+        headers: headers,
       );
+
+      print("STATUS: ${response.statusCode}");
+      print("BODY: ${response.body}");
 
       final data = jsonDecode(response.body);
 
@@ -56,11 +58,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         List<Map<String, dynamic>> barang = List<Map<String, dynamic>>.from(
           data['data'].map(
             (item) => {
-              "id_barang": item['id_barang'], // WAJIB untuk delete
-              "kode_barang": item['kode_barang']?.toString() ?? "",
-              "nama_barang": item['nama_barang']?.toString() ?? "",
+              "id_barang": item['id_barang'],
+              "kode_barang": item['kode_barang'] ?? "",
+              "nama_barang": item['nama_barang'] ?? "",
               "stok": int.tryParse(item['stok'].toString()) ?? 0,
-              "satuan": item['satuan']?.toString() ?? "",
+              "satuan": item['satuan'] ?? "",
             },
           ),
         );
@@ -113,10 +115,11 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         Uri.parse("$baseUrl/barang_admin.php"),
         headers: headers, // pastikan ada Role: admin
         body: jsonEncode({
+          "role": "admin", // WAJIB ADA
           "kode_barang": inputKode,
           "nama_barang": nama,
           "stok": stokInt,
-          "satuan": satuan, // ✅ sudah benar
+          "satuan": satuan,
         }),
       );
 
@@ -148,7 +151,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
       _showSnackBar("Terjadi kesalahan koneksi!");
     }
   }
- 
+
   // UPDATE STOK DI DATABASE
   Future<void> _updateExistingStok(String kodeBarang) async {
     try {
@@ -165,11 +168,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
 
       if (result['status'] == true) {
         await fetchBarang();
-
-        if (mounted) Navigator.pop(context); // TUTUP BOTTOMSHEET DI SINI SAJA
-
+        if (mounted) Navigator.pop(context); // tutup bottomsheet
         _showSnackBar("Stok berhasil diperbarui!");
-      } else {
+      }{
         _showSnackBar(result['message']);
       }
     } catch (e) {
@@ -181,8 +182,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final response = await http.delete(
         Uri.parse("$baseUrl/barang_admin.php"),
-        headers: {"Content-Type": "application/json", "Role": "admin"},
-        body: jsonEncode({"id_barang": id}),
+        headers: headers,
+        body: jsonEncode({"role": "admin", "id_barang": id}),
       );
 
       if (response.statusCode == 200) {
@@ -964,9 +965,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () {
-                  _updateExistingStok(item['kode_barang']);
-                  Navigator.pop(context);
+                onPressed: () async {
+                  await _updateExistingStok(item['kode_barang']);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF001FBF),
