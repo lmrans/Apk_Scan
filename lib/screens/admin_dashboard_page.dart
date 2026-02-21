@@ -83,48 +83,45 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
 
   // TAMBAH BARANG KE DATABASE
   Future<void> _addNewItem() async {
-    String inputKode = _kodeController.text.trim().toUpperCase();
+    String kode = _kodeController.text.trim().toUpperCase();
     String nama = _namaController.text.trim();
-    String stok = _stokController.text.trim();
-    String? satuan = _selectedSatuan; // dari dropdown
+    String stokText = _stokController.text.trim();
+    String? satuan = _selectedSatuan;
 
-    // ================= VALIDASI =================
-    if (inputKode.isEmpty || nama.isEmpty || stok.isEmpty || satuan == null) {
+    if (kode.isEmpty || nama.isEmpty || stokText.isEmpty || satuan == null) {
       _showSnackBar("Semua field wajib diisi!");
       return;
     }
 
-    if (!inputKode.startsWith("ATK-")) {
+    if (!kode.startsWith("ATK-")) {
       _showSnackBar("Kode harus diawali ATK-");
       return;
     }
 
-    int? stokInt = int.tryParse(stok);
-    if (stokInt == null) {
-      _showSnackBar("Stok harus berupa angka!");
-      return;
-    }
-
-    if (stokInt < 0) {
-      _showSnackBar("Stok tidak boleh negatif!");
+    int? stok = int.tryParse(stokText);
+    if (stok == null || stok < 0) {
+      _showSnackBar("Stok harus angka dan tidak boleh negatif");
       return;
     }
 
     try {
       final response = await http.post(
         Uri.parse("$baseUrl/barang_admin.php"),
-        headers: headers, // pastikan ada Role: admin
+        headers: {
+          "Content-Type": "application/json",
+          "Role": "admin", // WAJIB sesuai PHP
+        },
         body: jsonEncode({
-          "role": "admin", // WAJIB ADA
-          "kode_barang": inputKode,
+          "kode_barang": kode,
           "nama_barang": nama,
-          "stok": stokInt,
+          "stok": stok,
           "satuan": satuan,
+          "harga": 0, // karena di database ada kolom harga
         }),
       );
 
-      print("Status: ${response.statusCode}");
-      print("Response: ${response.body}");
+      print("STATUS CODE: ${response.statusCode}");
+      print("RESPONSE BODY: ${response.body}");
 
       if (response.statusCode == 200) {
         final result = jsonDecode(response.body);
@@ -132,10 +129,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         if (result['status'] == true) {
           await fetchBarang();
 
-          _namaController.clear();
           _kodeController.clear();
+          _namaController.clear();
           _stokController.clear();
-          _selectedSatuan = null;
+          setState(() => _selectedSatuan = null);
 
           if (mounted) Navigator.pop(context);
 
@@ -147,8 +144,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         _showSnackBar("Server error: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error: $e");
-      _showSnackBar("Terjadi kesalahan koneksi!");
+      print("ERROR: $e");
+      _showSnackBar("Terjadi kesalahan koneksi");
     }
   }
 
@@ -170,7 +167,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         await fetchBarang();
         if (mounted) Navigator.pop(context); // tutup bottomsheet
         _showSnackBar("Stok berhasil diperbarui!");
-      }{
+      }
+      {
         _showSnackBar(result['message']);
       }
     } catch (e) {
@@ -182,15 +180,21 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
     try {
       final response = await http.delete(
         Uri.parse("$baseUrl/barang_admin.php"),
-        headers: headers,
-        body: jsonEncode({"role": "admin", "id_barang": id}),
+        headers: {
+          "Content-Type": "application/json",
+          "Role": "admin", // WAJIB sesuai PHP
+        },
+        body: jsonEncode({"id_barang": id}),
       );
+
+      print("DELETE STATUS: ${response.statusCode}");
+      print("DELETE BODY: ${response.body}");
 
       if (response.statusCode == 200) {
         final result = jsonDecode(response.body);
 
         if (result['status'] == true) {
-          await fetchBarang(); // refresh list
+          await fetchBarang();
           _showSnackBar("Barang berhasil dihapus");
         } else {
           _showSnackBar(result['message'] ?? "Gagal menghapus barang");
@@ -199,8 +203,8 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
         _showSnackBar("Server error: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error delete: $e");
-      _showSnackBar("Terjadi kesalahan koneksi!");
+      print("DELETE ERROR: $e");
+      _showSnackBar("Terjadi kesalahan koneksi");
     }
   }
 
