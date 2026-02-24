@@ -39,7 +39,7 @@ class _LoginAdminPageState extends State<LoginAdminPage> {
     try {
       // Gunakan 10.0.2.2 untuk emulator atau IP lokal komputer Anda
       final response = await http.post(
-        Uri.parse("http://76.4.3.3/apkscan/api/login_admin.php"),
+        Uri.parse("http://127.0.0.1/atk_api/api/login_admin.php"),
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",

@@ -14,7 +14,7 @@ class FormPeminjamanPage extends StatefulWidget {
 class _FormPeminjamanPageState extends State<FormPeminjamanPage>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Controller Input
   final namaController = TextEditingController();
   final jumlahController = TextEditingController();
@@ -22,7 +22,7 @@ class _FormPeminjamanPageState extends State<FormPeminjamanPage>
   // Controller Readonly
   final kodeController = TextEditingController();
   final stokController = TextEditingController();
-  final hargaController = TextEditingController();
+  final satuanController = TextEditingController();
 
   // Animasi & Data
   late AnimationController _rotationController;
@@ -50,7 +50,7 @@ class _FormPeminjamanPageState extends State<FormPeminjamanPage>
     jumlahController.dispose();
     kodeController.dispose();
     stokController.dispose();
-    hargaController.dispose();
+    satuanController.dispose();
     super.dispose();
   }
 
@@ -58,30 +58,30 @@ class _FormPeminjamanPageState extends State<FormPeminjamanPage>
   Future<void> ambilBarang() async {
     try {
       final response = await http.get(
-        Uri.parse("http://76.4.3.3/apkscan/api/barang_user.php"),
+        Uri.parse("http://127.0.0.1/atk_api/api/barang_user.php"),
+        // GANTI IP sesuai laptop kamu
       );
 
-      print("STATUS: ${response.statusCode}"); 
+      print("STATUS: ${response.statusCode}");
       print("BODY: ${response.body}");
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final List data = jsonDecode(response.body);
 
-        if (data['status'] == true) {
-          setState(() {
-            daftarBarang = data['data'];
-            loadingBarang = false;
-          });
-        } else {
-          setState(() => loadingBarang = false);
-        }
+        if (!mounted) return;
+
+        setState(() {
+          daftarBarang = data;
+          loadingBarang = false;
+        });
       } else {
+        if (!mounted) return;
         setState(() => loadingBarang = false);
       }
     } catch (e) {
       print("ERROR AMBIL BARANG: $e");
 
-      // WAJIB agar tidak loading terus
+      if (!mounted) return;
       setState(() => loadingBarang = false);
     }
   }
@@ -98,7 +98,7 @@ class _FormPeminjamanPageState extends State<FormPeminjamanPage>
 
     try {
       final response = await http.post(
-        Uri.parse("http://76.4.3.3/apkscan/api/transaksi.php"),
+        Uri.parse("http://127.0.0.1/atk_api/api/transaksi.php"),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "id_barang": selectedIdBarang,
@@ -302,8 +302,6 @@ class _FormPeminjamanPageState extends State<FormPeminjamanPage>
                                       selected['kode_barang'] ?? '';
                                   stokController.text = selected['stok']
                                       .toString();
-                                  hargaController.text =
-                                      "Rp ${selected['harga']}";
                                 });
                               },
 

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AdminApi {
-  static const baseUrl = "http://76.4.3.3/apkscan/api";
+  static const baseUrl = "http://127.0.0.1/atk_api/api";
 
   static Future<List<Map<String, dynamic>>> getBarang() async {
     final res = await http.get(Uri.parse("$baseUrl/barang.php"));

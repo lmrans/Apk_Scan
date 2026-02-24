@@ -17,7 +17,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
   late AnimationController _rotationController;
   String? _selectedSatuan;
 
-  final String baseUrl = "http://76.4.3.3/apkscan/api";
+  final String baseUrl = "http://127.0.0.1/atk_api/api";
   // jika pakai HP asli ganti dengan IP komputer kamu
   Map<String, String> get headers => {
     "Content-Type": "application/json",
@@ -116,7 +116,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
           "nama_barang": nama,
           "stok": stok,
           "satuan": satuan,
-          "harga": 0, // karena di database ada kolom harga
         }),
       );
 
@@ -463,7 +462,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                   GestureDetector(
                     onTap: () async {
                       final url = Uri.parse(
-                        "http://76.4.3.3/apkscan/api/export_transaksi.php",
+                        "http://127.0.0.1/atk_api/api/export_transaksi.php",
                       );
                       await launchUrl(
                         url,
@@ -758,7 +757,9 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
   }
 
   Widget _buildTableRow(Map<String, dynamic> item) {
-    bool isStokRendah = item['stok'] < 5;
+    int stok = int.tryParse(item['stok'].toString()) ?? 0;
+    bool isStokRendah = stok < 5;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
@@ -766,7 +767,6 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
           Expanded(
             flex: 2,
             child: Text(
-              // UBAH DARI item['kode'] MENJADI item['kode_barang']
               item['kode_barang'] ?? "-",
               style: const TextStyle(
                 color: Color(0xFF001FBF),
@@ -781,12 +781,15 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  // PASTIKAN KEY-NYA nama_barang
                   item['nama_barang'] ?? "Tanpa Nama",
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
+                ),
+                Text(
+                  "Satuan: ${item['satuan'] ?? '-'}",
+                  style: const TextStyle(fontSize: 9, color: Colors.grey),
                 ),
                 if (isStokRendah)
                   const Text(
@@ -812,7 +815,7 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  item['stok'].toString(),
+                  "$stok ${item['satuan'] ?? ''}",
                   style: TextStyle(
                     color: isStokRendah ? Colors.red : const Color(0xFF001FBF),
                     fontWeight: FontWeight.w900,
@@ -996,37 +999,45 @@ class _AdminDashboardPageState extends State<AdminDashboardPage>
               height: 55,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context);
-
                   showDialog(
                     context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      title: const Text("Konfirmasi Hapus"),
-                      content: Text(
-                        "Yakin ingin menghapus ${item['nama_barang']}?",
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(dialogContext),
-                          child: const Text("Batal"),
+                    builder: (dialogContext) {
+                      return AlertDialog(
+                        title: const Text("Konfirmasi Hapus"),
+                        content: Text(
+                          "Yakin ingin menghapus ${item['nama_barang']}?",
                         ),
-                        TextButton(
-                          onPressed: () async {
-                            await _deleteBarang(item['id_barang']);
-
-                            Navigator.pop(dialogContext); // tutup dialog
-                            Navigator.pop(context); // tutup bottomsheet
-                          },
-                          child: const Text(
-                            "Hapus",
-                            style: TextStyle(color: Colors.red),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop();
+                            },
+                            child: const Text("Batal"),
                           ),
-                        ),
-                      ],
-                    ),
+                          TextButton(
+                            onPressed: () async {
+                              int id =
+                                  int.tryParse(item['id_barang'].toString()) ??
+                                  0;
+
+                              await _deleteBarang(id);
+
+                              if (!mounted) return;
+
+                              // Tutup dialog
+                              Navigator.of(dialogContext).pop();
+
+                              // Tutup bottomsheet
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text(
+                              "Hapus",
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   );
                 },
                 style: ElevatedButton.styleFrom(
